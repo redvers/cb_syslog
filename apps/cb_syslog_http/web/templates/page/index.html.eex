@@ -1,0 +1,20 @@
+Procstart:
+    <div><canvas id="procstart" width="1000" height="128"></div>
+Procend:
+    <div><canvas id="procend" width="1000" height="128"></div>
+Childproc:
+    <div><canvas id="childproc" width="1000" height="128"></div>
+Moduleload:
+    <div><canvas id="moduleload" width="1000" height="128"></div>
+Module:
+    <div><canvas id="module" width="1000" height="128"></div>
+Filemod:
+    <div><canvas id="filemod" width="1000" height="128"></div>
+Regmod:
+    <div><canvas id="regmod" width="1000" height="128"></div>
+Netconn:
+    <div><canvas id="netconn" width="1000" height="128"></div>
+Unknown:
+    <div><canvas id="unknown" width="1000" height="128"></div>
+Outgoing Syslog:
+    <div><canvas id="syslog" width="1000" height="128"></div>
