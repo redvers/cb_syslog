@@ -1,9 +1,12 @@
 use Mix.Config
 
 config :cb_syslog_http, CbSyslogHttp.Endpoint,
-  http: [port: {:system, "PORT"}],
-  url: [host: "example.com", port: 80],
-  cache_static_manifest: "priv/static/manifest.json"
+  http: [port: 4000],
+  url: [host: "notmycbserver.com", port: 4000],
+  cache_static_manifest: "priv/static/manifest.json",
+  debug_errors: false,
+  code_reloader: false,
+  server: true
 
 config :logger, level: :info
 

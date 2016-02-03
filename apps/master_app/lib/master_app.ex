@@ -1,0 +1,2 @@
+defmodule MasterApp do
+end

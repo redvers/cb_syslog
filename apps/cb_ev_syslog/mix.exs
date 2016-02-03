@@ -22,7 +22,6 @@ defmodule CbEvSyslog.Mixfile do
   defp deps do
     [
       {:cbserverapi2, git: "https://github.com/redvers/cbserverapi2.git"},
-      {:exrm, "~> 1.0.0-rc7"},
       {:syslog, "~> 1.0.2"},
       {:jsx, "~> 2.8.0"}
     ]

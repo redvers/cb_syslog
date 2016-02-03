@@ -9,6 +9,6 @@ defmodule CbSyslog.Mixfile do
   end
 
   defp deps do
-    []
+    [{:exrm, git: "https://github.com/bitwalker/exrm"}]
   end
 end
