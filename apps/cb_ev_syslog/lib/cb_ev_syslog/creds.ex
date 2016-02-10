@@ -10,4 +10,13 @@ defmodule CbEvSyslog.Creds do
       port:     Map.get(mqdata, "rabbitmqport"),
       username: Map.get(mqdata, "rabbitmquser")}
   end
+
+  def webcreds do
+    webcreddata = File.read!("/etc/cb/cb.conf")
+    |> String.split("\n")
+    |> Enum.filter(&(Regex.match?(~r/^#cbclientapi/i, &1)))
+    |> Enum.reduce(%{}, fn(x, acc) -> [field, value] = String.split(x, "=") ; Map.put(acc, String.downcase(field), value) end)
+  end
+
+
 end

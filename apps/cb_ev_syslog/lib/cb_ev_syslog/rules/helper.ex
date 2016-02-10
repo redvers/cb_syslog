@@ -1,4 +1,47 @@
+require Logger
 defmodule CbEvSyslog.Rules.Helper do
+
+  def enrich_with_procstart(event) do
+    event
+    case :ets.lookup(:proccache, {event.event.env.endpoint."SensorId", event.event.header.process_pid, event.event.header.process_create_time}) do
+      [] -> :ok
+#Logger.debug(inspect({event.event.env.endpoint."SensorId", event.event.header.process_pid, event.event.header.process_create_time}) <> " missing from cache")
+#            CbEvSyslog.Sensor.Worker.recv_newevent(event.event.env.endpoint."SensorId", event.event)
+      _ -> :ok
+    end
+#    |> IO.inspect
+  end
+
+  def populate_process_cache(event =
+    %{env: %{endpoint: %{"SensorId": sensorid}},
+      header: %{process_create_time: process_create_time, process_pid: process_pid },
+      process: %{parent_create_time: parent_create_time, parent_pid: parent_pid, parent_md5: parent_md5,
+                    parent_path: parent_path, commandline: commandline, uid: uid, username: username},
+      strings: [%{utf8string: utf8string}]
+            }) do
+    cachedata = %CbEvSyslog.Process{
+      commandline: commandline,
+      parent_guid: {sensorid, parent_pid, parent_create_time},
+      parent_md5: parent_md5,
+      parent_path: parent_path,
+      uid: uid,
+      username: username,
+      utf8string: utf8string
+    }
+
+    :ets.insert(:proccache, {{sensorid, process_pid, process_create_time}, cachedata})
+
+  end
+
+  def depopulate_process_cache(event =
+    %{env: %{endpoint: %{"SensorId": sensorid}},
+      header: %{process_create_time: process_create_time, process_pid: process_pid }}) do
+    :ets.delete(:proccache, {sensorid, process_pid, process_create_time})
+  end
+
+
+
+  #### Original Rule Functions
   def enrich_header(event) do
     event
     |> put_in([:header, :process_md5], process_md5(event.header.process_md5))
@@ -132,5 +175,21 @@ defmodule CbEvSyslog.Rules.Helper do
   def filemod_md5(%{filemod: %{md5hash: md5hash}}) do
     md5hash |> Base.encode16 |> String.downcase
   end
+
+  def populate_process_cache(procstart = %{env: %{endpoint: %{SensorId: sensorid}}, header: %{process_pid: process_pid, process_create_time: process_create_time}}) do
+    ## Key: sensorid, pid, createtime - same as CB
+    key = {sensorid, process_pid, process_create_time}
+    value = %{commandline:        procstart.process.commandline,
+              parent_md5:         procstart.process.parent_md5,
+              parent_create_time: procstart.process.parent_create_time,
+              parent_path:        procstart.process.parent_path,
+              parent_pid:         procstart.process.parent_pid,
+              uid:                procstart.process.uid,
+              username:           procstart.process.username}
+    :ets.insert(:proccache, {key, value})
+  end
+
+
+
 end
 

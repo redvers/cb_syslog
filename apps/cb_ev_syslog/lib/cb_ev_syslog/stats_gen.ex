@@ -6,7 +6,7 @@ defmodule CbEvSyslog.StatsGen do
   end
 
   def init(%{}) do
-    :erlang.send_after(1000, self, :ping)
+#    :erlang.send_after(1000, self, :ping)
     {:ok, %{stats: %{}}}
   end
 

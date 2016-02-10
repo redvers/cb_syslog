@@ -3,7 +3,7 @@ defmodule CbEvSyslog.Egress.Syslog do
 
   def start_link do
     {:ok, pid} = GenEvent.start_link(name: __MODULE__)
-    GenEvent.add_handler(pid, __MODULE__, 0)
+#    GenEvent.add_handler(pid, __MODULE__, 0)
     {:ok, pid}
   end
 

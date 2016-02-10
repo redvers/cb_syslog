@@ -3,7 +3,7 @@ defmodule CbEvSyslog.Mixfile do
 
   def project do
     [app: :cb_ev_syslog,
-     version: "0.0.1",
+     version: "0.1.0",
      build_path: "../../_build",
      config_path: "../../config/config.exs",
      deps_path: "../../deps",
@@ -15,14 +15,17 @@ defmodule CbEvSyslog.Mixfile do
   end
 
   def application do
-    [applications: [:logger, :cbserverapi2, :syslog, :runtime_tools, :jsx, :sasl],
+    [applications: [:logger, :amnesia, :hackney, :cbserverapi2, :syslog, :runtime_tools, :jsx, :sasl, :gproc],
     mod: {CbEvSyslog, []}]
   end
 
   defp deps do
     [
       {:cbserverapi2, git: "https://github.com/redvers/cbserverapi2.git"},
+      {:amnesia, "~> 0.2.1"},
+      {:hackney, "== 1.4.4"},
       {:syslog, "~> 1.0.2"},
+      {:gproc, "~> 0.5.0"},
       {:jsx, "~> 2.8.0"}
     ]
   end
