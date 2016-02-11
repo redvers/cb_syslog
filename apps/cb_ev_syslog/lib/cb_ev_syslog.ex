@@ -34,7 +34,7 @@ defmodule CbEvSyslog do
 #    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.module", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
     Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.filemod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
 #    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.regmod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
-#    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.netconn", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
+    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.netconn", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
 
     rulestart
     :ets.new(:proccache, [:set, :named_table, :public])
@@ -42,7 +42,7 @@ defmodule CbEvSyslog do
   end
 
   def rulestart do
-#    GenEvent.add_handler(CbEvSyslog.Ingress.Netconn, CbEvSyslog.Rules.Netconn, []) |> IO.inspect
+    GenEvent.add_handler(CbEvSyslog.Ingress.Netconn, CbEvSyslog.Rules.Netconn, []) |> IO.inspect
     GenEvent.add_handler(CbEvSyslog.Ingress.Filemod, CbEvSyslog.Rules.Filemod, []) |> IO.inspect
     GenEvent.add_handler(CbEvSyslog.Ingress.Procend, CbEvSyslog.Rules.Procend, []) |> IO.inspect
     GenEvent.add_handler(CbEvSyslog.Ingress.Procstart, CbEvSyslog.Rules.Procstart, []) |> IO.inspect

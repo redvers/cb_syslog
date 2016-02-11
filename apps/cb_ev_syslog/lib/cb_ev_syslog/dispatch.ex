@@ -1,5 +1,5 @@
 defmodule CbEvSyslog.Dispatch do
-  defstruct event: nil, type: nil, drop: false, sendto: []
+  defstruct event: nil, type: nil, drop: false, sendto: [], procdecorate: nil, sensordecorate: nil
   def evcallback({
     {:"basic.deliver", tag, serial, _, "api.events", "ingress.event.procstart"},
     {:amqp_msg, {:P_basic, "application/protobuf",_,_,_,_,_,_,_,_,_,_,_,_,_}, payload}}) do
