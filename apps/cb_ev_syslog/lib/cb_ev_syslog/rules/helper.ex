@@ -1,6 +1,19 @@
 require Logger
 defmodule CbEvSyslog.Rules.Helper do
 
+  def tee(event = %{drop: true}, _) do
+  end
+
+  def tee(event, stream) do
+    GenEvent.notify(stream, event)
+    event
+  end
+
+
+
+
+
+
   def enrich_with_procstart(event = %{event: %{header: %{process_pid: :undefined}}}) do
     Map.put(event, :drop, true)
   end
@@ -15,13 +28,42 @@ defmodule CbEvSyslog.Rules.Helper do
     end
   end
 
-  def populate_process_cache(event =
+  def populate_process_cache(event = %{ drop: true}) do
+    event # plonk
+  end
+  def populate_process_cache(event = %{
+        drop: false,
+        event: procstart = %{
+          env: %{
+            endpoint: %{
+              SensorId: sensorid
+            }
+          },
+          header: %{
+            process_pid: process_pid,
+            process_create_time: process_create_time
+          }
+        }
+      }) do
+                              ## Key: sensorid, pid, createtime - same as CB
+                              key = {sensorid, process_pid, process_create_time}
+                              value = %{commandline:        procstart.process.commandline,
+                                        parent_md5:         procstart.process.parent_md5,
+                                        parent_create_time: procstart.process.parent_create_time,
+                                        parent_path:        procstart.process.parent_path,
+                                        parent_pid:         procstart.process.parent_pid,
+                                        uid:                procstart.process.uid,
+                                        username:           procstart.process.username}
+                              :ets.insert(:proccache, {key, value})
+        event
+      end
+  def populate_process_cache(event = %{ drop: false, event: 
     %{env: %{endpoint: %{"SensorId": sensorid}},
       header: %{process_create_time: process_create_time, process_pid: process_pid },
       process: %{parent_create_time: parent_create_time, parent_pid: parent_pid, parent_md5: parent_md5,
                     parent_path: parent_path, commandline: commandline, uid: uid, username: username},
       strings: [%{utf8string: utf8string}]
-            }) do
+            }}) do
     cachedata = %CbEvSyslog.Process{
       commandline: commandline,
       parent_guid: {sensorid, parent_pid, parent_create_time},
@@ -33,7 +75,7 @@ defmodule CbEvSyslog.Rules.Helper do
     }
 
     :ets.insert(:proccache, {{sensorid, process_pid, process_create_time}, cachedata})
-
+    event
   end
 
   def depopulate_process_cache(event =
@@ -43,6 +85,14 @@ defmodule CbEvSyslog.Rules.Helper do
   end
 
 
+  def enrich_sensor(event = %{drop: true}) do
+    event
+  end
+  def enrich_sensor(event) do
+    sensordata = CbEvSyslog.DB.Sensor.read!(event.event.env.endpoint."SensorId")
+    newevent = Map.put(event, :sensordecorate, sensordata)
+    newevent
+  end
   def enrich_header(event = %{drop: true}) do
     event
   end
@@ -63,25 +113,43 @@ defmodule CbEvSyslog.Rules.Helper do
     Map.put(event, :event, newsubevent)
   end
 
-#  def enrich_process(event) do
-#    event
-#    |> put_in([:process, :md5hash], process_md5(event.process.md5hash))
-#    |> put_in([:process, :parent_md5], process_md5(event.process.parent_md5))
-#    |> put_in([:process, :parent_guid], guid(%{header: %{process_create_time: event.process.parent_create_time, process_pid: event.process.parent_pid}, env: %{endpoint: %{"SensorId": event.env.endpoint."SensorId"}}}))
-#  end
-#
-#  def enrich_netconn(event) do
-#    event
-#    |> put_in([:network, :ipv4Address],      format_ipaddr(event.network.ipv4Address))
-#    |> put_in([:network, :localIpAddress],   format_ipaddr(event.network.localIpAddress))
-#    |> put_in([:network, :remoteIpAddress],  format_ipaddr(event.network.remoteIpAddress))
-#    |> put_in([:network, :proxyIpv4Address], format_ipaddr(event.network.proxyIpv4Address))
-#    |> put_in([:network, :port],             format_port(event.network.port))
-#    |> put_in([:network, :localPort],        format_port(event.network.localPort))
-#    |> put_in([:network, :remotePort],       format_port(event.network.remotePort))
-#    |> put_in([:network, :proxyPort],        format_port(event.network.proxyPort))
-#    |> put_in([:network, :fqdnsplit],        split_fqdn(event.network.utf8_netpath))
-#  end
+  def enrich_process(event = %{drop: true}) do
+    event
+  end
+  def enrich_process(event = %{drop: false, event: subevent}) do
+    newsubevent = subevent
+    |> put_in([:process, :md5hash], process_md5(subevent.process.md5hash))
+    |> put_in([:process, :parent_md5], process_md5(subevent.process.parent_md5))
+    |> put_in([:process, :parent_guid], guid(%{header: %{process_create_time: subevent.process.parent_create_time, process_pid: subevent.process.parent_pid}, env: %{endpoint: %{"SensorId": subevent.env.endpoint."SensorId"}}}))
+    Map.put(event, :event, newsubevent)
+  end
+
+  def enrich_netconn(event = %{drop: true}) do
+    event
+  end
+
+
+
+  def enrich_netconn(event = %{event: subevent}) do
+    newsubevent = subevent
+    |> put_in([:network, :ipv4Address],      format_ipaddr(subevent.network.ipv4Address))
+    |> put_in([:network, :localIpAddress],   format_ipaddr(subevent.network.localIpAddress))
+    |> put_in([:network, :remoteIpAddress],  format_ipaddr(subevent.network.remoteIpAddress))
+    |> put_in([:network, :proxyIpv4Address], format_ipaddr(subevent.network.proxyIpv4Address))
+    |> put_in([:network, :port],             format_port(subevent.network.port))
+    |> put_in([:network, :localPort],        format_port(subevent.network.localPort))
+    |> put_in([:network, :remotePort],       format_port(subevent.network.remotePort))
+    |> put_in([:network, :proxyPort],        format_port(subevent.network.proxyPort))
+    |> put_in([:network, :protocol],         format_protocol(subevent.network.protocol))
+    |> put_in([:network, :fqdnsplit],        split_fqdn(subevent.network.utf8_netpath))
+    Map.put(event, :event, newsubevent)
+  end
+
+  def format_protocol(:ProtoTcp), do: "tcp" 
+  def format_protocol(:ProtoUdp), do: "udp" 
+  def format_protocol(other), do: to_string(other)
+
+
 
   def split_fqdn(:undefined) do
     %{host: "", domain: ""}
@@ -185,18 +253,6 @@ defmodule CbEvSyslog.Rules.Helper do
     md5hash |> Base.encode16 |> String.downcase
   end
 
-  def populate_process_cache(procstart = %{env: %{endpoint: %{SensorId: sensorid}}, header: %{process_pid: process_pid, process_create_time: process_create_time}}) do
-    ## Key: sensorid, pid, createtime - same as CB
-    key = {sensorid, process_pid, process_create_time}
-    value = %{commandline:        procstart.process.commandline,
-              parent_md5:         procstart.process.parent_md5,
-              parent_create_time: procstart.process.parent_create_time,
-              parent_path:        procstart.process.parent_path,
-              parent_pid:         procstart.process.parent_pid,
-              uid:                procstart.process.uid,
-              username:           procstart.process.username}
-    :ets.insert(:proccache, {key, value})
-  end
 
 
 

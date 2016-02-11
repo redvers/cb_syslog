@@ -44,7 +44,7 @@ defmodule CbEvSyslog.Process.Worker do
                 :found -> #Logger.debug("Lastcheck was nil, data is NOT in ets, webui returned data")
                           send(self, :selflookup)
                           {:noreply, state}
-                 :lost -> :erlang.send_after(@waittime, self, :self_lookup)
+                 :lost -> :erlang.send_after(@waittime, self, :selflookup)
                           #Logger.debug("Lastcheck was nil, data was NOT in ets, webui returned NO data")
                           {:noreply, %{queue: q, last_check: :calendar.universal_time |> :calendar.datetime_to_gregorian_seconds }}
               end
@@ -87,19 +87,23 @@ defmodule CbEvSyslog.Process.Worker do
 #    Logger.debug("resolve_process guid maps to: #{guid}")
 
     %{"#cbclientapitoken" => token, "#cbclientapiurl" => url} = CbEvSyslog.Creds.webcreds
-    {:ok, statuscode, _headers, reference} =
-    :hackney.get("#{url}/v1/process?q=process_id:#{guid}&rows=1", [{"X-Auth-Token", token}], '', [ssl_options: [insecure: true], async: false])
-    case statuscode do
-      200 -> {:ok, body} = :hackney.body(reference)
-             case :jsx.decode(body) |> jsx_into_process_struct do
-               nil -> #Logger.debug("Nothing found in UI - try again later")
-                      :lost
-               procstruct -> #Logger.debug("procstruct generated: #{inspect(procstruct)}")
-                             :ets.insert(:proccache, {procstruct.guid, procstruct})
-                             :found
-             end
-      whatisthis   -> #Logger.debug("Got something other than a 200 #{inspect(whatisthis)}")
-             :lost
+    case :hackney.get("#{url}/v1/process?q=process_id:#{guid}&rows=1", [{"X-Auth-Token", token}], '', [ssl_options: [insecure: true], async: false]) do
+      {:error, x}                            ->
+        Logger.debug("Hackney error on process lookup, #{inspect(x)}")
+        :lost
+      {:ok, statuscode, _headers, reference} -> 
+        case statuscode do
+          200 -> {:ok, body} = :hackney.body(reference)
+                 case :jsx.decode(body) |> jsx_into_process_struct do
+                   nil -> #Logger.debug("Nothing found in UI - try again later")
+                          :lost
+                   procstruct -> #Logger.debug("procstruct generated: #{inspect(procstruct)}")
+                                 :ets.insert(:proccache, {procstruct.guid, procstruct})
+                                 :found
+                 end
+          whatisthis   -> #Logger.debug("Got something other than a 200 #{inspect(whatisthis)}")
+                 :lost
+      end
     end
   end
 
