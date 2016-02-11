@@ -1,15 +1,18 @@
 require Logger
 defmodule CbEvSyslog.Rules.Helper do
 
-  def enrich_with_procstart(event) do
-    event
-    case :ets.lookup(:proccache, {event.event.env.endpoint."SensorId", event.event.header.process_pid, event.event.header.process_create_time}) do
-      [] -> :ok
-#Logger.debug(inspect({event.event.env.endpoint."SensorId", event.event.header.process_pid, event.event.header.process_create_time}) <> " missing from cache")
-#            CbEvSyslog.Sensor.Worker.recv_newevent(event.event.env.endpoint."SensorId", event.event)
-      _ -> :ok
+  def enrich_with_procstart(event = %{event: %{header: %{process_pid: :undefined}}}) do
+    Map.put(event, :drop, true)
+  end
+
+  def enrich_with_procstart(event = %{event: subevent}) do
+    case :ets.lookup(:proccache, {subevent.env.endpoint."SensorId", subevent.header.process_pid, subevent.header.process_create_time}) do
+      []       ->   #Logger.debug("Cachemiss")
+                    CbEvSyslog.Sensor.Worker.recv_newevent(subevent.env.endpoint."SensorId", subevent)
+        Map.put(event, :drop, true)
+        cachehit -> #Logger.debug("Cachehit: #{inspect(cachehit)}")
+                    Map.put(event, :procdecorate, cachehit)
     end
-#    |> IO.inspect
   end
 
   def populate_process_cache(event =
@@ -40,39 +43,45 @@ defmodule CbEvSyslog.Rules.Helper do
   end
 
 
-
-  #### Original Rule Functions
-  def enrich_header(event) do
+  def enrich_header(event = %{drop: true}) do
     event
-    |> put_in([:header, :process_md5], process_md5(event.header.process_md5))
-    |> put_in([:header, :process_guid], guid(event))
-    |> put_in([:header, :timestamp], timestamp(event))
+  end
+  def enrich_header(event = %{event: subevent}) do
+    newsubevent = subevent
+    |> put_in([:header, :process_md5], process_md5(subevent.header.process_md5))
+    |> put_in([:header, :process_guid], guid(subevent))
+    |> put_in([:header, :timestamp], timestamp(subevent))
+    Map.put(event, :event, newsubevent)
   end
 
-  def enrich_filemod(event) do
+  def enrich_filemod(event = %{drop: true}) do
     event
-    |> put_in([:filemod, :md5hash], process_md5(event.filemod.md5hash))
+  end
+  def enrich_filemod(event = %{event: subevent}) do
+    newsubevent = subevent
+    |> put_in([:filemod, :md5hash], process_md5(subevent.filemod.md5hash))
+    Map.put(event, :event, newsubevent)
   end
 
-  def enrich_process(event) do
-    event
-    |> put_in([:process, :md5hash], process_md5(event.process.md5hash))
-    |> put_in([:process, :parent_md5], process_md5(event.process.parent_md5))
-    |> put_in([:process, :parent_guid], guid(%{header: %{process_create_time: event.process.parent_create_time, process_pid: event.process.parent_pid}, env: %{endpoint: %{"SensorId": event.env.endpoint."SensorId"}}}))
-  end
-
-  def enrich_netconn(event) do
-    event
-    |> put_in([:network, :ipv4Address],      format_ipaddr(event.network.ipv4Address))
-    |> put_in([:network, :localIpAddress],   format_ipaddr(event.network.localIpAddress))
-    |> put_in([:network, :remoteIpAddress],  format_ipaddr(event.network.remoteIpAddress))
-    |> put_in([:network, :proxyIpv4Address], format_ipaddr(event.network.proxyIpv4Address))
-    |> put_in([:network, :port],             format_port(event.network.port))
-    |> put_in([:network, :localPort],        format_port(event.network.localPort))
-    |> put_in([:network, :remotePort],       format_port(event.network.remotePort))
-    |> put_in([:network, :proxyPort],        format_port(event.network.proxyPort))
-    |> put_in([:network, :fqdnsplit],        split_fqdn(event.network.utf8_netpath))
-  end
+#  def enrich_process(event) do
+#    event
+#    |> put_in([:process, :md5hash], process_md5(event.process.md5hash))
+#    |> put_in([:process, :parent_md5], process_md5(event.process.parent_md5))
+#    |> put_in([:process, :parent_guid], guid(%{header: %{process_create_time: event.process.parent_create_time, process_pid: event.process.parent_pid}, env: %{endpoint: %{"SensorId": event.env.endpoint."SensorId"}}}))
+#  end
+#
+#  def enrich_netconn(event) do
+#    event
+#    |> put_in([:network, :ipv4Address],      format_ipaddr(event.network.ipv4Address))
+#    |> put_in([:network, :localIpAddress],   format_ipaddr(event.network.localIpAddress))
+#    |> put_in([:network, :remoteIpAddress],  format_ipaddr(event.network.remoteIpAddress))
+#    |> put_in([:network, :proxyIpv4Address], format_ipaddr(event.network.proxyIpv4Address))
+#    |> put_in([:network, :port],             format_port(event.network.port))
+#    |> put_in([:network, :localPort],        format_port(event.network.localPort))
+#    |> put_in([:network, :remotePort],       format_port(event.network.remotePort))
+#    |> put_in([:network, :proxyPort],        format_port(event.network.proxyPort))
+#    |> put_in([:network, :fqdnsplit],        split_fqdn(event.network.utf8_netpath))
+#  end
 
   def split_fqdn(:undefined) do
     %{host: "", domain: ""}
@@ -111,7 +120,7 @@ defmodule CbEvSyslog.Rules.Helper do
       |> to_string
   end
 
-  def to_syslog(string) do
+  def to_syslog(string) when is_binary(string) do
     GenEvent.notify(CbEvSyslog.Egress.Syslog, :unicode.characters_to_binary(string, :latin1))
   end
 

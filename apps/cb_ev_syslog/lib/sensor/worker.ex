@@ -1,6 +1,6 @@
 require Logger
 defmodule CbEvSyslog.Sensor do
-  defstruct sensor: %{}, processmap: %{}
+  defstruct sensor: %{}, processmap: %{}, ref2pid: %{}
 end
 
 defmodule CbEvSyslog.Sensor.Worker do
@@ -31,16 +31,19 @@ defmodule CbEvSyslog.Sensor.Worker do
 
 
   def handle_cast({:newevent, event}, state) do
-    procpid = 
+    {procpid, newstate} = 
     case Map.get(state.processmap, {event.env.endpoint."SensorId", event.header.process_pid, event.header.process_create_time}) do
-      pid when is_pid(pid) -> pid
+      pid when is_pid(pid) -> {pid, state}
       nil                  -> {:ok, pid} = CbEvSyslog.Process.Worker.start_link({event.env.endpoint."SensorId", event.header.process_pid, event.header.process_create_time})
-                              pid
+                              reference = Process.monitor(pid)
+                              p2r = Map.put(state.ref2pid, reference, pid)
+                              newstate = Map.put(state, :ref2pid, p2r)
+                              {pid, newstate}
     end
     GenServer.cast(procpid, {:ev, event})
-    newpidlist = Map.put(state.processmap, {event.env.endpoint."SensorId", event.header.process_pid, event.header.process_create_time}, procpid)
-    newstate = Map.put(state, :processmap, newpidlist)
-    {:noreply, newstate}
+    newpidlist = Map.put(newstate.processmap, {event.env.endpoint."SensorId", event.header.process_pid, event.header.process_create_time}, procpid)
+    newstater = Map.put(newstate, :processmap, newpidlist)
+    {:noreply, newstater}
   end
 
   def handle_info({:sensor_refresh, sensorid}, state) do
@@ -49,6 +52,23 @@ defmodule CbEvSyslog.Sensor.Worker do
       newstruct ->
         {:noreply, Map.put(state, :sensor, newstruct)}
     end
+  end
+
+  def handle_info({:DOWN, reference, :process, pid, :normal}, state) do
+    guid = Map.get(state.ref2pid, reference)
+    newref2pid = Map.delete(state.ref2pid, reference)
+    newpmap = Map.delete(state.processmap, guid)
+    newstate =
+      state
+      |> Map.put(:processmap, newpmap)
+      |> Map.put(:ref2pid, newref2pid)
+
+    {:noreply, newstate}
+  end
+
+  def handle_info(any, state) do
+    IO.inspect any
+    {:noreply, state}
   end
 
 
@@ -66,7 +86,7 @@ defmodule CbEvSyslog.Sensor.Worker do
   end
 
   def initiate(sensorid, nil) do
-    Logger.debug("Nothing in amnesia for this host #{sensorid} - Trigger self-lookup")
+#    Logger.debug("Nothing in amnesia for this host #{sensorid} - Trigger self-lookup")
     :erlang.send_after(1000, self, {:sensor_refresh, sensorid})
     {:ok, %CbEvSyslog.Sensor{sensor: %CbEvSyslog.DB.Sensor{id: sensorid}}}
   end
