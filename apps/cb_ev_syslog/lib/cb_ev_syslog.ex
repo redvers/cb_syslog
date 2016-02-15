@@ -36,8 +36,8 @@ defmodule CbEvSyslog do
 #    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.regmod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
     Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.netconn", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
 
-    rulestart
     :ets.new(:proccache, [:set, :named_table, :public])
+    rulestart
     returnme
   end
 
