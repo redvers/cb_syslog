@@ -9,6 +9,9 @@ defmodule CbEvSyslog.Rules.Helper do
     event
   end
 
+  def init(x \\ 0) do
+    {:ok, x}
+  end
 
 
 
@@ -47,13 +50,14 @@ defmodule CbEvSyslog.Rules.Helper do
       }) do
                               ## Key: sensorid, pid, createtime - same as CB
                               key = {sensorid, process_pid, process_create_time}
-                              value = %{commandline:        procstart.process.commandline,
+                              value = %CbEvSyslog.Process{commandline:        procstart.process.commandline,
                                         parent_md5:         procstart.process.parent_md5,
-                                        parent_create_time: procstart.process.parent_create_time,
+                                        parent_guid:        {sensorid, procstart.process.parent_pid, procstart.process.parent_create_time},
                                         parent_path:        procstart.process.parent_path,
-                                        parent_pid:         procstart.process.parent_pid,
+                                        utf8string:        procstart.process.parent_path,
                                         uid:                procstart.process.uid,
                                         username:           procstart.process.username}
+#                              Logger.debug("Writing to ets: #{inspect(value.parent_guid)}")
                               :ets.insert(:proccache, {key, value})
         event
       end
@@ -74,6 +78,7 @@ defmodule CbEvSyslog.Rules.Helper do
       utf8string: utf8string
     }
 
+#    Logger.debug("Writing to ets2: #{inspect(cachedata.parent_guid)}")
     :ets.insert(:proccache, {{sensorid, process_pid, process_create_time}, cachedata})
     event
   end
@@ -121,6 +126,8 @@ defmodule CbEvSyslog.Rules.Helper do
     |> put_in([:process, :md5hash], process_md5(subevent.process.md5hash))
     |> put_in([:process, :parent_md5], process_md5(subevent.process.parent_md5))
     |> put_in([:process, :parent_guid], guid(%{header: %{process_create_time: subevent.process.parent_create_time, process_pid: subevent.process.parent_pid}, env: %{endpoint: %{"SensorId": subevent.env.endpoint."SensorId"}}}))
+
+#    Logger.debug("Another possible location - put_in #{inspect(newsubevent)}")
     Map.put(event, :event, newsubevent)
   end
 
@@ -171,6 +178,23 @@ defmodule CbEvSyslog.Rules.Helper do
   def assign_fqdn_split([h|t]) do
     %{host: h, domain: Enum.join(t, ".")}
   end
+
+
+  def guid({0,0,0}) do
+    "00000000-0000-0000-0000-000000000000"
+  end
+  def guid({sensorid, process_pid, process_create_time}) do
+    << guid :: size(128) >> = << sensorid :: size(32), process_pid :: size(32), process_create_time :: size(64) >>
+    :io_lib.format('~32.16.0b', [guid])
+      |> List.flatten
+      |> List.insert_at(8, '-')
+      |> List.insert_at(13, '-')
+      |> List.insert_at(18, '-')
+      |> List.insert_at(23, '-')
+      |> to_string
+  end
+
+
 
   def guid(event = %{header: %{process_pid: :undefined}}) do 
     "00000000-0000-0000-0000-000000000000"

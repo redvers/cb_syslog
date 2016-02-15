@@ -1,9 +1,6 @@
 require Logger
 defmodule CbEvSyslog.Rules.Procstart do
   import CbEvSyslog.Rules.Helper
-  def init(x) do
-    {:ok, 0}
-  end
 
   def handle_event(event = %CbEvSyslog.Dispatch{event: subevent = %{env: env, header: header, process: process}}, count) when is_map(process) do
     event
