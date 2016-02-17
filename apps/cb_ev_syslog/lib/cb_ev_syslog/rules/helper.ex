@@ -1,6 +1,25 @@
 require Logger
 defmodule CbEvSyslog.Rules.Helper do
 
+  def trim_event(event = %{event: subevent}) do
+    newsub = subevent
+      |> Map.put(:header, trim(subevent.header))
+      |> Map.put(:process, trim(subevent.process))
+
+    event
+      |> Map.put(:event, newsub)
+      |> IO.inspect
+    :ok
+  end
+
+  def trim(:undefined), do: :undefined
+  def trim(map) when is_map(map) do
+    Enum.reject(map, fn({k,v}) -> v in [:undefined] end)
+    |> Enum.into(Map.new)
+  end
+
+
+
   def tee(event = %{drop: true}, _) do
   end
 
@@ -9,11 +28,50 @@ defmodule CbEvSyslog.Rules.Helper do
     event
   end
 
-  def init(x \\ 0) do
-    {:ok, x}
+  def init(_) do
+    {:ok, 0}
   end
 
+  def pass_regex(event, value, regex) do
+    pass_regex({event, value, regex})
+  end
+  def pass_regex({event = %{drop: true}, _, _}) do
+    event
+  end
+  def pass_regex({event, value, _}) when is_atom(value) do
+    Map.put(event, :drop, true)
+  end
+  def pass_regex({event = %{drop: false}, value, regex}) when is_binary(value) do
+    case(Regex.match?(regex, value)) do
+      true -> event
+      false -> Map.put(event, :drop, true)
+    end
+  end
+    
+  def reject_regex(event, value, regex) do
+    reject_regex({event, value, regex})
+  end
+  def reject_regex({event = %{drop: true}, _, _}) do
+    event
+  end
+  def reject_regex({event, value, _}) when is_atom(value) do
+    Map.put(event, :drop, true)
+  end
+  def reject_regex({event = %{drop: false}, value, regex}) when is_binary(value) do
+    case(Regex.match?(regex, value)) do
+      false -> event
+      true -> Map.put(event, :drop, true)
+    end
+  end
 
+  def reject_eq(event, value, regex) do
+    reject_eq({event, value, regex})
+  end
+  def reject_eq({event = %{drop: true}, _, _}) do
+    event
+  end
+  def reject_eq({event = %{drop: false}, value, value}), do: Map.put(event, :drop, true)
+  def reject_eq({event = %{drop: false}, _, _}), do: Map.put(event, :drop, true)
 
 
 

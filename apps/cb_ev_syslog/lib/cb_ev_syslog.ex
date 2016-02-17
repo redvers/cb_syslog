@@ -12,6 +12,7 @@ defmodule CbEvSyslog do
       supervisor(CbEvSyslog.Process.Supervisor, []),
 
       worker(CbEvSyslog.Ingress.Procstart, []),
+      worker(CbEvSyslog.Rules.Resolved.Procstart, []),
       worker(CbEvSyslog.Ingress.Procend, []),
       worker(CbEvSyslog.Ingress.Childproc, []),
       worker(CbEvSyslog.Ingress.Moduleload, []),
@@ -42,10 +43,25 @@ defmodule CbEvSyslog do
   end
 
   def rulestart do
+    GenEvent.add_handler(CbEvSyslog.Ingress.Procstart, CbEvSyslog.Rules.Procstart, []) |> IO.inspect
     GenEvent.add_handler(CbEvSyslog.Ingress.Netconn, CbEvSyslog.Rules.Netconn, []) |> IO.inspect
     GenEvent.add_handler(CbEvSyslog.Ingress.Filemod, CbEvSyslog.Rules.Filemod, []) |> IO.inspect
     GenEvent.add_handler(CbEvSyslog.Ingress.Procend, CbEvSyslog.Rules.Procend, []) |> IO.inspect
-    GenEvent.add_handler(CbEvSyslog.Ingress.Procstart, CbEvSyslog.Rules.Procstart, []) |> IO.inspect
+  end
+
+  def stats do
+    :sys.get_state(CbEvSyslog.Ingress.Procstart) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Procstart) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Procend) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Childproc) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Moduleload) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Module) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Filemod) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Regmod) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Netconn) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Ingress.Unknown) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Egress.Syslog) |> IO.inspect
+    :ok
   end
 
 
