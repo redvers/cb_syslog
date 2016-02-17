@@ -10,7 +10,7 @@ defmodule CbEvSyslog.Rules.Filemod do
     |> enrich_header
     |> enrich_sensor
     |> enrich_filemod
-    |> tee(CbEvSyslog.Egress.Syslog)
+    |> tee(CbEvSyslog.Rules.Resolved.Filemod)
     {:ok, %{finalwrite: c1 + 1,  dropped: c2}}
   end
   def handle_event(_, %{finalwrite: c1, dropped: c2}) do

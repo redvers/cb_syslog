@@ -12,7 +12,6 @@ defmodule CbEvSyslog do
       supervisor(CbEvSyslog.Process.Supervisor, []),
 
       worker(CbEvSyslog.Ingress.Procstart, []),
-      worker(CbEvSyslog.Rules.Resolved.Procstart, []),
       worker(CbEvSyslog.Ingress.Procend, []),
       worker(CbEvSyslog.Ingress.Childproc, []),
       worker(CbEvSyslog.Ingress.Moduleload, []),
@@ -22,6 +21,10 @@ defmodule CbEvSyslog do
       worker(CbEvSyslog.Ingress.Netconn, []),
       worker(CbEvSyslog.Ingress.Unknown, []),
 
+      worker(CbEvSyslog.Rules.Resolved.Procstart, []),
+      worker(CbEvSyslog.Rules.Resolved.Netconn, []),
+      worker(CbEvSyslog.Rules.Resolved.Filemod, []),
+
       worker(CbEvSyslog.StatsGen, [])
     ]
 
@@ -30,11 +33,11 @@ defmodule CbEvSyslog do
 
     Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.procstart", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
     Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.procend", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
-#    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.childproc", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
-#    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.moduleload", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
-#    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.module", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
-    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.filemod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
-#    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.regmod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
+    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.childproc", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
+    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.moduleload", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
+    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.module", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
+   Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.filemod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
+    Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.regmod", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
     Supervisor.start_child(Cbserverapi2.Connection.Supervisor, ["ingress.event.netconn", &CbEvSyslog.Dispatch.evcallback/1, &CbEvSyslog.Creds.creds/0])
 
     :ets.new(:proccache, [:set, :named_table, :public])
@@ -50,16 +53,22 @@ defmodule CbEvSyslog do
   end
 
   def stats do
+    IO.puts("\nCbEvSyslog.Ingress.Procstart:")
     :sys.get_state(CbEvSyslog.Ingress.Procstart) |> IO.inspect
     :sys.get_state(CbEvSyslog.Rules.Resolved.Procstart) |> IO.inspect
-    :sys.get_state(CbEvSyslog.Ingress.Procend) |> IO.inspect
-    :sys.get_state(CbEvSyslog.Ingress.Childproc) |> IO.inspect
-    :sys.get_state(CbEvSyslog.Ingress.Moduleload) |> IO.inspect
-    :sys.get_state(CbEvSyslog.Ingress.Module) |> IO.inspect
+#    :sys.get_state(CbEvSyslog.Ingress.Procend) |> IO.inspect
+#    :sys.get_state(CbEvSyslog.Ingress.Childproc) |> IO.inspect
+#    :sys.get_state(CbEvSyslog.Ingress.Moduleload) |> IO.inspect
+#    :sys.get_state(CbEvSyslog.Ingress.Module) |> IO.inspect
+    IO.puts("\nCbEvSyslog.Ingress.Filemod:")
     :sys.get_state(CbEvSyslog.Ingress.Filemod) |> IO.inspect
-    :sys.get_state(CbEvSyslog.Ingress.Regmod) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Filemod) |> IO.inspect
+#    :sys.get_state(CbEvSyslog.Ingress.Regmod) |> IO.inspect
+    IO.puts("\nCbEvSyslog.Ingress.Netconn:")
     :sys.get_state(CbEvSyslog.Ingress.Netconn) |> IO.inspect
-    :sys.get_state(CbEvSyslog.Ingress.Unknown) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Netconn) |> IO.inspect
+#    :sys.get_state(CbEvSyslog.Ingress.Unknown) |> IO.inspect
+    IO.puts("\nCbEvSyslog.Egress.Syslog:")
     :sys.get_state(CbEvSyslog.Egress.Syslog) |> IO.inspect
     :ok
   end
