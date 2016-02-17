@@ -19,22 +19,16 @@ defmodule CbEvSyslog.Creds do
   end
 
   def ldapcreds do
-    ldapcreddata = File.read!("/etc/cb/cb.conf")
+    domainlines = File.read!("/etc/cb/cb.conf")
     |> String.split("\n")
-    |> Enum.filter(&(Regex.match?(~r/^#ldapad/i, &1)))
-#    |> Enum.map(%{"#ldapaddomain" => %{}, "#ldapaduser" => "", "#ldapadpass" => ""}, fn(x,acc) ->
-    |> Enum.map(&parse_ldap_line/1)
+    |> Enum.filter(&(Regex.match?(~r/^#ldapaddomain/i, &1)))
+    |> Enum.reduce(Map.new, fn(x, acc) -> Map.merge(acc, parse_ldap_line(x)) end)
   end
 
   def parse_ldap_line(x) do
-    [key, val] = String.split(x, ":")
-    case key do
-      "#ldapaddomain" ->
-        [domain, dn] = String.split(val, ";")
-        {domain, dn}
-      other ->
-        {key, val}
-    end
+    [_,user,pass,domain,base] = String.split(x, ":")
+    Map.new
+    |> Map.put(domain, %{user: user, pass: pass, base: base})
   end
 
 
