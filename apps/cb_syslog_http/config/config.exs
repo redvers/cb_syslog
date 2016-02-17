@@ -11,6 +11,7 @@ config :cb_syslog_http, CbSyslogHttp.Endpoint,
   root: Path.dirname(__DIR__),
   secret_key_base: "xAXY0+LmvE089bJWIFZmg2E8cSSIgq9iQ235mRh1cv37frLFpDggprQGzt4/iKH8",
   render_errors: [accepts: ~w(html json)],
+  server: true,
   pubsub: [name: CbSyslogHttp.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
@@ -21,4 +22,4 @@ config :logger, :console,
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-#import_config "#{Mix.env}.exs"
+import_config "#{Mix.env}.exs"

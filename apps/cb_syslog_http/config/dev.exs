@@ -11,6 +11,7 @@ config :cb_syslog_http, CbSyslogHttp.Endpoint,
   debug_errors: false,
   code_reloader: false,
   check_origin: false,
+  server: true,
   watchers: [node: ["node_modules/brunch/bin/brunch", "watch", "--stdin"]]
 
 # Watch static and templates for browser reloading.
