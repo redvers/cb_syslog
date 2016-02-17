@@ -13,9 +13,15 @@ defmodule CbEvSyslog.Rules.Resolved.Netconn do
     {:ok, 0}
   end
 
-  def handle_event(event = %{event: subevent = %{env: env, header: header, network: network}}, count) when is_map(network) do
-    event
-    |> tee(CbEvSyslog.Egress.Syslog)
+  def handle_event(event, count) do
+    cond do
+      Regex.match?(~r/Server/, event.sensordecorate.os_environment_display_string) ->
+        event |> tee(CbEvSyslog.Rules.Resolved.Srv.Netconn)
+      Regex.match?(~r/Windows/, event.sensordecorate.os_environment_display_string) ->
+        event |> tee(CbEvSyslog.Rules.Resolved.Wks.Netconn)
+      true ->
+        event |> tee(CbEvSyslog.Rules.Resolved.Unk.Netconn)
+    end
     {:ok, count + 1}
   end
 end

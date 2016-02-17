@@ -27,6 +27,9 @@ defmodule CbEvSyslog do
       worker(CbEvSyslog.Rules.Resolved.Wks.Procstart, []),
       worker(CbEvSyslog.Rules.Resolved.Unk.Procstart, []),
 
+      worker(CbEvSyslog.Rules.Resolved.Srv.Netconn, []),
+      worker(CbEvSyslog.Rules.Resolved.Wks.Netconn, []),
+      worker(CbEvSyslog.Rules.Resolved.Unk.Netconn, []),
 
 
 
@@ -84,6 +87,9 @@ defmodule CbEvSyslog do
     IO.puts("\nCbEvSyslog.Ingress.Netconn:")
     :sys.get_state(CbEvSyslog.Ingress.Netconn) |> IO.inspect
     :sys.get_state(CbEvSyslog.Rules.Resolved.Netconn) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Srv.Netconn) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Wks.Netconn) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Unk.Netconn) |> IO.inspect
 #    :sys.get_state(CbEvSyslog.Ingress.Unknown) |> IO.inspect
     IO.puts("\nCbEvSyslog.Egress.Syslog:")
     :sys.get_state(CbEvSyslog.Egress.Syslog) |> IO.inspect
