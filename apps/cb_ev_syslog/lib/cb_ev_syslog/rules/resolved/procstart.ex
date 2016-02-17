@@ -9,8 +9,19 @@ defmodule CbEvSyslog.Rules.Resolved.Procstart do
     {:ok, pid}
   end
 
+  def init(_) do
+    {:ok, 0}
+  end
+
   def handle_event(event, count) do
-    event |> tee(CbEvSyslog.Egress.Syslog)
+    cond do
+      Regex.match?(~r/Server/, event.sensordecorate.os_environment_display_string) ->
+        event |> tee(CbEvSyslog.Rules.Resolved.Srv.Procstart)
+      Regex.match?(~r/Windows/, event.sensordecorate.os_environment_display_string) ->
+        event |> tee(CbEvSyslog.Rules.Resolved.Wks.Procstart)
+      true ->
+        event |> tee(CbEvSyslog.Rules.Resolved.Unk.Procstart)
+    end
     {:ok, count+1}
   end
 

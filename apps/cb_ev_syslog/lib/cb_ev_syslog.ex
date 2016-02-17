@@ -11,19 +11,33 @@ defmodule CbEvSyslog do
       supervisor(CbEvSyslog.Sensor.Supervisor, []),
       supervisor(CbEvSyslog.Process.Supervisor, []),
 
+      ## CarbonBlack Ingress Streams
       worker(CbEvSyslog.Ingress.Procstart, []),
       worker(CbEvSyslog.Ingress.Procend, []),
-      worker(CbEvSyslog.Ingress.Childproc, []),
-      worker(CbEvSyslog.Ingress.Moduleload, []),
-      worker(CbEvSyslog.Ingress.Module, []),
       worker(CbEvSyslog.Ingress.Filemod, []),
-      worker(CbEvSyslog.Ingress.Regmod, []),
       worker(CbEvSyslog.Ingress.Netconn, []),
-      worker(CbEvSyslog.Ingress.Unknown, []),
 
+      ## Resolved / Enriched Ingress Streams
       worker(CbEvSyslog.Rules.Resolved.Procstart, []),
       worker(CbEvSyslog.Rules.Resolved.Netconn, []),
       worker(CbEvSyslog.Rules.Resolved.Filemod, []),
+
+      ## Server / WKS split
+      worker(CbEvSyslog.Rules.Resolved.Srv.Procstart, []),
+      worker(CbEvSyslog.Rules.Resolved.Wks.Procstart, []),
+      worker(CbEvSyslog.Rules.Resolved.Unk.Procstart, []),
+
+
+
+
+
+      ## Leaving these running to add additional load
+      worker(CbEvSyslog.Ingress.Childproc, []),
+      worker(CbEvSyslog.Ingress.Moduleload, []),
+      worker(CbEvSyslog.Ingress.Module, []),
+      worker(CbEvSyslog.Ingress.Regmod, []),
+      worker(CbEvSyslog.Ingress.Unknown, []),
+
 
       worker(CbEvSyslog.StatsGen, [])
     ]
@@ -56,6 +70,9 @@ defmodule CbEvSyslog do
     IO.puts("\nCbEvSyslog.Ingress.Procstart:")
     :sys.get_state(CbEvSyslog.Ingress.Procstart) |> IO.inspect
     :sys.get_state(CbEvSyslog.Rules.Resolved.Procstart) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Srv.Procstart) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Wks.Procstart) |> IO.inspect
+    :sys.get_state(CbEvSyslog.Rules.Resolved.Unk.Procstart) |> IO.inspect
 #    :sys.get_state(CbEvSyslog.Ingress.Procend) |> IO.inspect
 #    :sys.get_state(CbEvSyslog.Ingress.Childproc) |> IO.inspect
 #    :sys.get_state(CbEvSyslog.Ingress.Moduleload) |> IO.inspect
