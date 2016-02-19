@@ -26,9 +26,9 @@ defmodule CbEvSyslog.Creds do
   end
 
   def parse_ldap_line(x) do
-    [_,user,pass,domain,base] = String.split(x, ":")
+    [_,user,pass,domain,base,server] = String.split(x, ":")
     Map.new
-    |> Map.put(domain, %{user: user, pass: pass, base: base})
+    |> Map.put(domain, %{user: user, pass: pass, base: base, server: server})
   end
 
 
