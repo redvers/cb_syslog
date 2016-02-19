@@ -153,7 +153,13 @@ defmodule CbEvSyslog.Rules.Helper do
   end
   def enrich_sensor(event) do
     sensordata = CbEvSyslog.DB.Sensor.read!(event.event.env.endpoint."SensorId")
-    newevent = Map.put(event, :sensordecorate, sensordata)
+    newsd = 
+    case sensordata do
+      nil -> CbEvSyslog.Sensor.Worker.sensor_lookup(event.event.env.endpoint."SensorId")
+             CbEvSyslog.DB.Sensor.read!(event.event.env.endpoint."SensorId")
+      other -> other
+    end
+    newevent = Map.put(event, :sensordecorate, newsd)
     newevent
   end
   def enrich_header(event = %{drop: true}) do

@@ -49,7 +49,7 @@ defmodule CbEvSyslog.Sensor.Worker do
   def handle_info({:sensor_refresh, sensorid}, state) do
     case sensor_lookup(sensorid) do
       :error    -> {:noreply, state}
-      newstruct ->
+      newstruct -> sensor_lookup(sensorid)
         {:noreply, Map.put(state, :sensor, newstruct)}
     end
   end
@@ -106,6 +106,10 @@ defmodule CbEvSyslog.Sensor.Worker do
              |> :jsx.decode
              |> into_sensor_struct
              |> CbEvSyslog.DB.Sensor.write!
+      404 -> :hackney.body(reference)
+             |> inspect
+             |> Logger.debug
+             :error
       _   -> :erlang.send_after(1000, self, {:sensor_refresh, sensorid})
              :error
     end
