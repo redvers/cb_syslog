@@ -10,6 +10,7 @@ defmodule CbEvSyslog do
       worker(CbEvSyslog.Egress.Syslog, []),
       supervisor(CbEvSyslog.Sensor.Supervisor, []),
       supervisor(CbEvSyslog.Process.Supervisor, []),
+      supervisor(CbEvSyslog.AD.Supervisor, []),
 
       ## CarbonBlack Ingress Streams
       worker(CbEvSyslog.Ingress.Procstart, []),
@@ -42,7 +43,7 @@ defmodule CbEvSyslog do
       worker(CbEvSyslog.Ingress.Unknown, []),
 
 
-      worker(CbEvSyslog.StatsGen, [])
+#      worker(CbEvSyslog.StatsGen, [])
     ]
 
     opts = [strategy: :one_for_one, name: CbEvSyslog.Supervisor]
@@ -63,10 +64,10 @@ defmodule CbEvSyslog do
   end
 
   def rulestart do
-    GenEvent.add_handler(CbEvSyslog.Ingress.Procstart, CbEvSyslog.Rules.Procstart, []) |> IO.inspect
-    GenEvent.add_handler(CbEvSyslog.Ingress.Netconn, CbEvSyslog.Rules.Netconn, []) |> IO.inspect
-    GenEvent.add_handler(CbEvSyslog.Ingress.Filemod, CbEvSyslog.Rules.Filemod, []) |> IO.inspect
-    GenEvent.add_handler(CbEvSyslog.Ingress.Procend, CbEvSyslog.Rules.Procend, []) |> IO.inspect
+    GenEvent.add_mon_handler(CbEvSyslog.Ingress.Procstart, CbEvSyslog.Rules.Procstart, []) |> IO.inspect
+    GenEvent.add_mon_handler(CbEvSyslog.Ingress.Netconn, CbEvSyslog.Rules.Netconn, []) |> IO.inspect
+    GenEvent.add_mon_handler(CbEvSyslog.Ingress.Filemod, CbEvSyslog.Rules.Filemod, []) |> IO.inspect
+    GenEvent.add_mon_handler(CbEvSyslog.Ingress.Procend, CbEvSyslog.Rules.Procend, []) |> IO.inspect
   end
 
   def stats do
